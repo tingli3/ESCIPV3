@@ -5,6 +5,7 @@ struct clusterInfo {
 	int clusterID;
 	int count0;
 	int count1;
+	double expCount1;
 	double ll;
 	double pValue;
 	struct clusterInfo * next;

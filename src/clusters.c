@@ -232,7 +232,7 @@ int * doClusterPoi(double * x, double * y, int * ind, int * index, int nBlockX, 
 			}
 			curInfo->clusterID = cID;
 			curInfo->count1 = nEInCluster;
-			curInfo->count0 = expEventInCluster;
+			curInfo->expCount1 = expEventInCluster;
 			curInfo->ll = LL;
 			curInfo->next = NULL; 
 

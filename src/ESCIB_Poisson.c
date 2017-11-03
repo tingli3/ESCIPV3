@@ -132,7 +132,7 @@ int main(int argc, char ** argv) {
 	struct clusterInfo * curInfo = cInfo;
 	while(curInfo != NULL) {
 		cInfo = curInfo->next;
-		printf("%d,%d,%d,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->count0, curInfo->ll);
+		printf("%d,%d,%lf,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->expCount1, curInfo->ll);
 		
 		free(curInfo);
 		curInfo = cInfo;		

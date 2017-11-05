@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "io.h"
 #include "countPoints.h"
 #include "clusters.h"
@@ -112,27 +113,43 @@ int main(int argc, char ** argv) {
 	struct clusterInfo * cInfo;
 
 	int * clusters = doClusterBer(x, y, ind, index, nBlockX, nBlockY, radius, xMin, yMin, countCas, countCon, countPointsCas, countPointsCon, p, significance, minCore, nonCorePoints, &cInfo);
-	printf("ClusterID,nCas,nCon,LL\n");
-	struct clusterInfo * curInfo = cInfo;
-	while(curInfo != NULL) {
-		cInfo = curInfo->next;
-		printf("%d,%d,%d,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->count0, curInfo->ll);
-		
-		free(curInfo);
-		curInfo = cInfo;		
-	}
-	
-	//Output 
+		//Output 
 	if(NULL == (output = fopen(argv[3], "w"))) {
 		printf("ERROR: Can't open the output file.\n");
 		exit(1);
 	}
 
+	fprintf(output, "X,Y,CaseOrCon,ClusterID\n");
 	for(int i = 0; i < count; i++) {
 		fprintf(output, "%lf,%lf,%d,%d\n", x[i], y[i], ind[i], clusters[i]);
 	}
 
 	fclose(output);
+
+	char * outputCInfo = (char *) malloc((strlen(argv[3]) + 10) * sizeof(char));
+	outputCInfo[0] = '\0';
+	strcat(outputCInfo, argv[3]);
+	strcat(outputCInfo, "_Info");
+
+	if(NULL == (output = fopen(outputCInfo, "w"))) {
+		printf("ERROR: Can't open the output file.\n");
+		exit(1);
+	}
+
+	fprintf(output, "ClusterID,nCas,nCon,LL\n");
+	struct clusterInfo * curInfo = cInfo;
+	while(curInfo != NULL) {
+		cInfo = curInfo->next;
+		fprintf(output, "%d,%d,%d,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->count0, curInfo->ll);
+		
+		free(curInfo);
+		curInfo = cInfo;		
+	}
+	
+
+	fclose(output);
+
+	free(outputCInfo);	
 
 
 

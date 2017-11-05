@@ -5,12 +5,13 @@
 #include "io.h"
 #include "countPoints.h"
 #include "clusters.h"
+#include "mc.h"
 
 int main(int argc, char ** argv) {
 
-	if(argc != 9) {
+	if(argc != 10) {
 		printf("ERROR! Incorrect number of input arguments\n");
-		printf("ESCIB_Bernoulli inputCase inputControl output searchRadius significance(alpha) baselineRatio minCorPointsInEachCluster nonCorePoints\n");
+		printf("ESCIB_Bernoulli inputCase inputControl output searchRadius significance(alpha) baselineRatio minCorPointsInEachCluster nonCorePoints nSim\n");
 		return 1;
 	}
 
@@ -28,6 +29,8 @@ int main(int argc, char ** argv) {
 	bool nonCorePoints = true;
 	if(atoi(argv[8]) == 0)
 		nonCorePoints = false;
+	int nSim = atoi(argv[9]);
+
 
 	if(NULL == (inputCas = fopen(argv[1], "r")))
 	{
@@ -125,6 +128,14 @@ int main(int argc, char ** argv) {
 	}
 
 	fclose(output);
+	free(countPointsCas);
+	free(countPointsCon);
+	free(clusters);
+
+
+	if(nSim > 0) {
+		monteCarloBer(x, y, ind, index, nBlockX, nBlockY, radius, xMin, yMin, countCas, countCon, p, significance, minCore, nonCorePoints, nSim, cInfo);
+	}
 
 	char * outputCInfo = (char *) malloc((strlen(argv[3]) + 10) * sizeof(char));
 	outputCInfo[0] = '\0';
@@ -136,32 +147,34 @@ int main(int argc, char ** argv) {
 		exit(1);
 	}
 
-	fprintf(output, "ClusterID,nCas,nCon,LL\n");
+	if(nSim > 0) {
+		fprintf(output, "ClusterID,nCas,nCon,LL,pValue\n");
+	}
+	else {
+		fprintf(output, "ClusterID,nCas,nCon,LL\n");
+	}
 	struct clusterInfo * curInfo = cInfo;
 	while(curInfo != NULL) {
 		cInfo = curInfo->next;
-		fprintf(output, "%d,%d,%d,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->count0, curInfo->ll);
-		
+		if(nSim > 0) {
+			fprintf(output, "%d,%d,%d,%lf,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->count0, curInfo->ll, curInfo->pValue);
+		}
+		else {
+			fprintf(output, "%d,%d,%d,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->count0, curInfo->ll);
+		}
 		free(curInfo);
 		curInfo = cInfo;		
 	}
-	
 
 	fclose(output);
 
 	free(outputCInfo);	
 
-
-
 	free(x);
 	free(y);
 	free(ind);
 	free(index);
-	free(countPointsCas);
-	free(countPointsCon);
 
-
-	free(clusters);
 
 	return 0;
 }

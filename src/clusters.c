@@ -561,3 +561,188 @@ int * doClusterDBSCAN(double * x, double * y, int * index, int nBlockX, int nBlo
 	free(pointsToDo);
 	return clusterID;
 }
+
+/**
+ * NAME:	berMaximumLL
+ * DESCRIPTION:	find the maximum log likelihood of any cluster in a Bernoulli model
+ * PARAMETERS:
+ * 	double * x: 		the array of points' X values
+ * 	double * y: 		the array of points' Y values
+ * 	int * ind:			the array of points' type indicator (1: case, 0: control)
+ * 	int * index:		the index of all event points
+ * 	int nBlockX:		the number of index blocks along X dimension
+ * 	int nBlockY:		the number of index blocks along Y dimension
+ *	double radius:		the search radius, which is also the block size
+ *	double xMin:		the minimum X of all points
+ *	double yMin:		the minimum Y of all points
+ *	int countCas:		the number of case points
+ *	int countCon:		the number of control points
+ *	int * casC:			the number of case points (within radius) near each case points
+ *	int * conC:			the number of control points (within radius) near each case points
+ *	double p:			the p of Possion distribution
+ *	double significance: 	the significane level to tell a cluste core point
+ *	int minCore:		the minimum number of core points in each cluster (each cluste should have more core points than minCore)
+ *	bool nonCorePoints:	whether a cluster include non-core points
+ * RETURN:
+ * 	TYPE:	double 
+ * 	VALUE:	the maximum log likelihood of any clusters
+ */
+double berMaximumLL(double * x, double * y, int * ind, int * index, int nBlockX, int nBlockY, double radius, double xMin, double yMin, int countCas, int countCon, int * casC, int * conC, double p, double significance, int minCore, bool nonCorePoints)
+{
+	int count = index[nBlockX * nBlockY];
+
+	double resultLL = 1;
+
+	int * clusterID;
+	if(NULL == (clusterID = (int *)malloc(sizeof(int) * count)))
+	{
+		printf("ERROR: Out of memory at line %d in file %s\n", __LINE__, __FILE__);
+		exit(1);
+	}
+
+	for(int i = 0; i < count; i++)
+	{
+		if(BinomialTest(casC[i], conC[i], p) < significance)
+			clusterID[i] = 0;
+		else
+			clusterID[i] = -1;
+//		printf("%d,%d,%d\n", casC[i], conC[i], clusterID[i]);
+	}
+
+	int * pointsToDo;
+	if(NULL == (pointsToDo = (int *)malloc(sizeof(int) * count)))
+	{
+		printf("ERROR: Out of memory at line %d in file %s\n", __LINE__, __FILE__);
+		exit(1);
+	}
+	int nPToDo = 0;
+	int cID = 0;
+
+	int * inCluster;
+
+	if(NULL == (inCluster = (int *)malloc(sizeof(int) * count))) {
+		printf("ERROR: Out of memory at line %d in file %s\n", __LINE__, __FILE__);
+		exit(1);
+	}
+
+	for(int i = 0; i < count; i++) {
+		inCluster[i] = -1;
+	}
+
+	double dist2 = radius * radius;
+
+	double cX, cY;
+	int colID, rowID;
+	int colMin, colMax, rowMin, rowMax;
+
+	int iNb;
+
+	int coreCount;
+
+	int nCasInCluster;
+	int nConInCluster;
+
+	for(int i = 0; i < count; i++)
+	{
+		if(clusterID[i] != 0 || ind[i] == 0)
+			continue;
+		pointsToDo[0] = i;
+		nPToDo = 1;
+		cID ++;
+		clusterID[i] = cID;
+		
+		coreCount = 1;
+
+		inCluster[i] = cID;
+		nCasInCluster = 1;
+		nConInCluster = 0;
+
+		while(nPToDo > 0) {
+			nPToDo --;
+			cX = x[pointsToDo[nPToDo]];		
+			cY = y[pointsToDo[nPToDo]];
+
+			colID = (int)((cX - xMin) / radius);
+			rowID = (int)((cY - yMin) / radius);
+
+			colMin = (colID == 0) ? 0 : (colID - 1);
+			colMax = (colID == nBlockX - 1) ? (nBlockX - 1) : (colID + 1);
+			rowMin = (rowID == 0) ? 0 : (rowID - 1);
+			rowMax = (rowID == nBlockY - 1) ? (nBlockY - 1) : (rowID + 1);
+
+			for(int row = rowMin; row <= rowMax; row ++)
+			{
+				for(iNb = index[row * nBlockX + colMin]; iNb < index[row * nBlockX + colMax + 1]; iNb ++)
+				{
+					if(inCluster[iNb] != cID) {
+						if(dist2 >= ((x[iNb] - cX) * (x[iNb] - cX) + (y[iNb] - cY) * (y[iNb] - cY))) {
+							if(clusterID[iNb] == 0) {
+								clusterID[iNb] = cID;
+
+								if(ind[iNb] == 0) {
+									nConInCluster ++;
+								}
+								else {
+									pointsToDo[nPToDo] = iNb;
+									nPToDo ++;
+									nCasInCluster ++;
+									coreCount ++;
+								}
+							}
+							else if(clusterID[iNb] == -1 && nonCorePoints) {
+								clusterID[iNb] = cID;
+								if(ind[iNb] == 0) {
+									nConInCluster ++;
+								}
+								else {
+									nCasInCluster ++;
+								}
+							}
+
+							inCluster[iNb] = cID;
+							
+						}
+					}
+				}
+			}
+		}
+
+		if(coreCount <= minCore)
+		{
+//			printf("Here");
+			for(int j = 0; j < (count); j++)
+			{
+				if(clusterID[j] == cID)
+					clusterID[j] = -1;
+			}
+			cID --;
+		}
+		else {
+			double countInCl = nCasInCluster + nConInCluster;
+			double LL = 0;
+			if(nCasInCluster > 0) {
+				LL += nCasInCluster * log(nCasInCluster/countInCl);
+			}
+			if(nConInCluster > 0) {
+				LL += nConInCluster * log(nConInCluster/countInCl);
+			}
+			if(countCas > nCasInCluster) {
+				LL += (countCas - nCasInCluster) * log((countCas - nCasInCluster)/(count-countInCl));
+			}
+			if(countCon > nConInCluster) {
+				LL += (countCon - nConInCluster) * log((countCon - nConInCluster)/(count-countInCl));
+			}
+			if(resultLL > 0 || resultLL < LL) {
+				resultLL = LL;
+			}
+		}
+	}
+
+	free(pointsToDo);
+	free(inCluster);
+	free(clusterID);
+
+	return resultLL; 
+}
+
+

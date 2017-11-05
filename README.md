@@ -16,6 +16,7 @@ ESCIB with a Bernoulli model, used for case-control study
 8. nonCorePoints: whether clusters should keep non-core points
   * 0: not keeping
   * 1: keeping
+9. nSim: the number of Monte Carlo replications
   
 ## ESCIB_Poisson
 ESCIB with a (inhomogeneous Poisson) model, used for detecting spatial clusters over a changing background intensity

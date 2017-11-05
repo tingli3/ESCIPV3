@@ -1,7 +1,7 @@
 GCC	:= g++
 
 
-TARGETS := io countPoints clusters
+TARGETS := io countPoints clusters mc
 OBJS    := $(TARGETS:=.o)
 SRCS    := $(TARGETS:=.c)
 HDRS    := $(TARGETS:=.h)
@@ -11,7 +11,7 @@ HDRS    := $(TARGETS:=.h)
 all: ESCIB_Bernoulli ESCIB_Poisson DBSCAN
 
 $(OBJS): %.o: %.c %.h
-	$(GCC) -o $@ -c $<
+	$(GCC) -o $@ -c $< -std=c++11
 
 ESCIB_Bernoulli.o: ESCIB_Bernoulli.c
 	$(GCC) -o $@ -c $<

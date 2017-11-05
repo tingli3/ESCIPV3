@@ -24,7 +24,6 @@
  */
 void countInDistance(double * x, double * y, int * ind, int * index, int nBlockX, int nBlockY, double distance, int * count0, int * count1)
 {
-	int count = index[nBlockX * nBlockY];
 	double xi, yi;
 	double dist2 = distance * distance;
 	int colID, rowID;
@@ -190,3 +189,34 @@ int * countInDistance_Double(double * xE, double * yE, double * xB, double * yB,
 	return count;
 }
 
+void countInDistance_EventsInPop(double * xB, double * yB, int * ind, int * indexB, int nBlockX, int nBlockY, double distance, int * countPointsE) {
+
+	double xi, yi;
+	double dist2 = distance * distance;
+	int colID, rowID;
+	int colMin, colMax, rowMin, rowMax;
+
+	for(rowID = 0; rowID < nBlockY; rowID ++) {
+		for(colID = 0; colID < nBlockX; colID ++) {
+			colMin = (colID == 0) ? 0 : (colID - 1);
+			colMax = (colID == nBlockX - 1) ? (nBlockX - 1) : (colID + 1);
+			rowMin = (rowID == 0) ? 0 : (rowID - 1);
+			rowMax = (rowID == nBlockY - 1) ? (nBlockY - 1) : (rowID + 1);
+
+			for(int i = indexB[rowID * nBlockX + colID]; i < indexB[rowID * nBlockX + colID + 1]; i++) {
+				xi = xB[i];
+				yi = yB[i];
+				countPointsE[i] = 0;
+	
+				for(int row = rowMin; row <= rowMax; row ++) {
+					for(int j = indexB[row * nBlockX + colMin]; j < indexB[row * nBlockX + colMax + 1]; j ++) {
+						if(ind[j] == 1 && dist2 >= ((xB[j] - xi) * (xB[j] - xi) + (yB[j] - yi) * (yB[j] - yi))) {
+							countPointsE[i] ++;
+						}
+					}
+				}
+			}
+		}
+	}
+
+}

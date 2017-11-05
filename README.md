@@ -4,7 +4,7 @@
 ## ESCIB_Bernoulli
 ESCIB with a Bernoulli model, used for case-control study
 ### To execute:
-  ESCIB_Bernoulli inputCase inputControl output searchRadius significance(alpha) baselineRatio minCorPointsInEachCluster nonCorePoints
+  ESCIB_Bernoulli inputCase inputControl output searchRadius significance(alpha) baselineRatio minCorPointsInEachCluster nonCorePoints nSim
 ### Arguments:
 1. inputCase: input file of case points, a csv without header with two columns: x and y
 2. inputControl: input file of control points, a csv without header with two columns: x and y
@@ -21,7 +21,7 @@ ESCIB with a Bernoulli model, used for case-control study
 ## ESCIB_Poisson
 ESCIB with a (inhomogeneous Poisson) model, used for detecting spatial clusters over a changing background intensity
 ### To execute:
-  ESCIB_Poisson inputBackground inputEvents output searchRadius significance(alpha) baselineRatio minCorPointsInEachCluster nonCorePoints
+  ESCIB_Poisson inputBackground inputEvents output searchRadius significance(alpha) baselineRatio minCorPointsInEachCluster nonCorePoints nSim
 1. inputBackground: input file of background points, a csv without header with two columns: x and y
 2. inputEvents: input file of event points, a csv without header with two columns: x and y
 3. output: output file name
@@ -32,6 +32,7 @@ ESCIB with a (inhomogeneous Poisson) model, used for detecting spatial clusters 
 8. nonCorePoints: whether clusters should keep non-core points
   * 0: not keeping
   * 1: keeping
+9. nSim: the number of Monte Carlo replications
 
 ## DBSCAN
 An implementation of DBSCAN algroithm for comparison purpose

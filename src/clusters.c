@@ -178,11 +178,11 @@ int * doClusterPoi(double * x, double * y, int * ind, int * index, int nBlockX, 
 							if(clusterID[iNb] == 0) {
 								clusterID[iNb] = cID;
 								if(ind[iNb] == 0) {
-									pointsToDo[nPToDo] = iNb;
-									nPToDo ++;
 									nBInCluster ++;
 								}
 								else {
+									pointsToDo[nPToDo] = iNb;
+									nPToDo ++;
 									nEInCluster ++;
 									coreCount ++;
 								}
@@ -709,7 +709,6 @@ double berMaximumLL(double * x, double * y, int * ind, int * index, int nBlockX,
 
 		if(coreCount <= minCore)
 		{
-//			printf("Here");
 			for(int j = 0; j < (count); j++)
 			{
 				if(clusterID[j] == cID)
@@ -740,6 +739,179 @@ double berMaximumLL(double * x, double * y, int * ind, int * index, int nBlockX,
 
 	free(pointsToDo);
 	free(inCluster);
+	free(clusterID);
+
+	return resultLL; 
+}
+
+/**
+ * NAME:	poiMaximumLL
+ * DESCRIPTION:	find the maximum log likelihood of any cluster in a Possion Model
+ * PARAMETERS:
+ * 	double * x: 		the array of points' X values
+ * 	double * y: 		the array of points' Y values
+ * 	int * ind:			the array of points' type indicator (1: events, 0: background)
+ * 	int * index:		the index of all event points
+ * 	int nBlockX:		the number of index blocks along X dimension
+ * 	int nBlockY:		the number of index blocks along Y dimension
+ *	double radius:		the search radius, which is also the block size
+ *	double xMin:		the minimum X of all points
+ *	double yMin:		the minimum Y of all points
+ *	int countB:			the number of background points
+ *	int countE:			the number of event points
+ *	int * eC:			the number of event (1) points (within radius) near each point
+ *	double * lambda:	the local lambda of Possion distribution of each event points
+ *	double significance: 	the significane level to tell a cluste core point
+ *	int minCore:		the minimum number of core points in each cluster (each cluste should have more core points than minCore)
+ *	bool nonCorePoints:	whether a cluster include non-core points
+ * RETURN:
+ * 	TYPE:	double 
+ * 	VALUE:	the maximum log likelihood of any clusters
+ */
+double poiMaximumLL(double * x, double * y, int * ind, int * index, int nBlockX, int nBlockY, double radius, double xMin, double yMin, int countB, int countE, int * eC, double * lambda, double significance, int minCore, bool nonCorePoints)
+{
+	double resultLL = -1;
+
+	int * clusterID;
+	if(NULL == (clusterID = (int *)malloc(sizeof(int) * countB)))
+	{
+		printf("ERROR: Out of memory at line %d in file %s\n", __LINE__, __FILE__);
+		exit(1);
+	}
+	
+	for(int i = 0; i < countB; i++)
+	{
+		if(PossionTest(eC[i], lambda[i]) < significance) {
+			clusterID[i] = 0;
+		}
+		else {
+			clusterID[i] = -1;
+		}
+	}
+
+	int * pointsToDo;
+	if(NULL == (pointsToDo = (int *)malloc(sizeof(int) * countB)))
+	{
+		printf("ERROR: Out of memory at line %d in file %s\n", __LINE__, __FILE__);
+		exit(1);
+	}
+	int nPToDo = 0;
+	int cID = 0;
+
+	int * inCluster;
+
+	if(NULL == (inCluster = (int *)malloc(sizeof(int) * countB))) {
+		printf("ERROR: Out of memory at line %d in file %s\n", __LINE__, __FILE__);
+		exit(1);
+	}
+	
+	for(int i = 0; i < countB; i++) {
+		inCluster[i] = -1;
+	}
+
+	double dist2 = radius * radius;
+
+	double cX, cY;
+	int colID, rowID;
+	int colMin, colMax, rowMin, rowMax;
+
+	int iNb;
+	int iNbEnd;
+
+	int coreCount;
+
+	int nEInCluster;
+	int nBInCluster;
+//	printf("ClusterID,Events,expEvents,LL\n");
+
+	for(int i = 0; i < countB; i++)
+	{
+		if(clusterID[i] != 0 || ind[i] == 0)
+			continue;
+		pointsToDo[0] = i;
+		nPToDo = 1;
+		cID ++;
+		clusterID[i] = cID;
+		
+		coreCount = 1;
+
+		inCluster[i] = cID;
+		nEInCluster = 1;
+		nBInCluster = 0;
+
+		while(nPToDo > 0) {
+			nPToDo --;
+			cX = x[pointsToDo[nPToDo]];		
+			cY = y[pointsToDo[nPToDo]];
+
+			colID = (int)((cX - xMin) / radius);
+			rowID = (int)((cY - yMin) / radius);
+
+			colMin = (colID == 0) ? 0 : (colID - 1);
+			colMax = (colID == nBlockX - 1) ? (nBlockX - 1) : (colID + 1);
+			rowMin = (rowID == 0) ? 0 : (rowID - 1);
+			rowMax = (rowID == nBlockY - 1) ? (nBlockY - 1) : (rowID + 1);
+
+			for(int row = rowMin; row <= rowMax; row ++)
+			{
+				for(iNb = index[row * nBlockX + colMin]; iNb < index[row * nBlockX + colMax + 1]; iNb ++)
+				{
+					if(inCluster[iNb] != cID) {
+						if(dist2 >= ((x[iNb] - cX) * (x[iNb] - cX) + (y[iNb] - cY) * (y[iNb] - cY))) {
+							if(clusterID[iNb] == 0) {
+								clusterID[iNb] = cID;
+								nBInCluster ++;
+								if(ind[iNb] == 1) {
+									pointsToDo[nPToDo] = iNb;
+									nPToDo ++;
+									nEInCluster ++;
+									coreCount ++;
+								}
+							}
+
+							else if(clusterID[iNb] == -1 && nonCorePoints) {
+								clusterID[iNb] = cID;
+								nBInCluster ++;
+								if(ind[iNb] == 1) {
+									nEInCluster ++;
+								}
+							}
+
+							inCluster[iNb] = cID;
+						}
+					}
+
+				}
+			}
+		}
+			
+//		printf("HERE\n");
+
+//		if(coreCount <= minCore)
+//		{
+//			for(int j = 0; j < countB; j++)
+//			{
+//				if(clusterID[j] == cID)
+//					clusterID[j] = -1;
+//			}
+//			cID --;
+//		}
+//		else {
+			double expEventInCluster = (double)(nBInCluster) / countB * countE;
+			double LL = nEInCluster * log(nEInCluster/expEventInCluster);
+			if(nEInCluster < countE) {
+				LL += (countE - nEInCluster) * log((countE - nEInCluster) / (countE - expEventInCluster));
+			}
+			if(resultLL < LL) {
+				resultLL = LL;
+			}
+
+//			printf("%d,%d,%lf,%lf\n", cID, nEInCluster, expEventInCluster, LL);
+//		}
+	}
+
+	free(inCluster);
+	free(pointsToDo);
 	free(clusterID);
 
 	return resultLL; 

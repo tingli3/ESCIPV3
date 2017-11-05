@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "io.h"
 #include "countPoints.h"
 #include "clusters.h"
@@ -127,16 +128,6 @@ int main(int argc, char ** argv) {
 	struct clusterInfo * cInfo;
 
 	int * clusters = doClusterPoi(x, y, ind, index, nBlockX, nBlockY, radius, xMin, yMin, countB, countE, countPointsE, lambda, significance, minCore, nonCorePoints, &cInfo);
-	
-	printf("ClusterID,Events,expEvents,LL\n");
-	struct clusterInfo * curInfo = cInfo;
-	while(curInfo != NULL) {
-		cInfo = curInfo->next;
-		printf("%d,%d,%lf,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->expCount1, curInfo->ll);
-		
-		free(curInfo);
-		curInfo = cInfo;		
-	}
 
 	//Output 
 	if(NULL == (output = fopen(argv[3], "w"))) {
@@ -153,8 +144,33 @@ int main(int argc, char ** argv) {
 
 	fclose(output);
 
-	free(countPointsE);
-	free(countPointsB);
+	char * outputCInfo = (char *) malloc((strlen(argv[3]) + 10) * sizeof(char));
+	outputCInfo[0] = '\0';
+	strcat(outputCInfo, argv[3]);
+	strcat(outputCInfo, "_Info");
+
+	if(NULL == (output = fopen(outputCInfo, "w"))) {
+		printf("ERROR: Can't open the output file.\n");
+		exit(1);
+	}
+
+	fprintf(output, "ClusterID,Events,expEvents,LL\n");
+	struct clusterInfo * curInfo = cInfo;
+	while(curInfo != NULL) {
+		cInfo = curInfo->next;
+		fprintf(output, "%d,%d,%lf,%lf\n", curInfo->clusterID, curInfo->count1, curInfo->expCount1, curInfo->ll);
+		
+		free(curInfo);
+		curInfo = cInfo;		
+	}
+	
+
+	fclose(output);
+
+	free(outputCInfo);	
+
+
+
 	
 	free(lambda);
 
@@ -162,6 +178,8 @@ int main(int argc, char ** argv) {
 	free(y);
 	free(ind);
 	free(index);
+	free(countPointsE);
+	free(countPointsB);
 
 	free(clusters);
 

@@ -124,6 +124,9 @@ int main(int argc, char ** argv) {
 
 	fprintf(output, "X,Y,CaseOrCon,ClusterID\n");
 	for(int i = 0; i < count; i++) {
+		if(clusters[i] == 0) {
+            clusters[i] = -1;
+        }
 		fprintf(output, "%lf,%lf,%d,%d\n", x[i], y[i], ind[i], clusters[i]);
 	}
 
